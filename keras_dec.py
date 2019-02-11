@@ -23,9 +23,6 @@ else:
     import pickle
 import numpy as np
 import tensorflow as tf
-#config = tf.ConfigProto(device_count={"CPU": 20})
-#K.set_session(K.tf.Session(config=K.tf.ConfigProto(intra_op_parallelism_threads=10, inter_op_parallelism_threads=10)))
-print('doneky')
 
 class ClusteringLayer(Layer):
     '''
@@ -128,7 +125,7 @@ class DeepEmbeddingClustering(object):
         self.encoders = []
         self.decoders = []
         for i  in range(1, len(self.encoders_dims)):
-            
+
             encoder_activation = 'linear' if i == (len(self.encoders_dims) - 1) else 'relu'
             encoder = Dense(self.encoders_dims[i], activation=encoder_activation,
                             input_shape=(self.encoders_dims[i-1],),
@@ -145,7 +142,7 @@ class DeepEmbeddingClustering(object):
             self.decoders.append(decoder)
 
             autoencoder = Sequential([
-                Dropout(dropout_fraction, input_shape=(self.encoders_dims[i-1],), 
+                Dropout(dropout_fraction, input_shape=(self.encoders_dims[i-1],),
                         name='encoder_dropout_%d'%i),
                 encoder,
                 Dropout(dropout_fraction, name='decoder_dropout_%d'%decoder_index),
@@ -183,7 +180,7 @@ class DeepEmbeddingClustering(object):
             print('layerwise pretrain')
             current_input = X
             lr_epoch_update = max(1, self.iters_lr_update / float(iters_per_epoch))
-            
+
             def step_decay(epoch):
                 initial_rate = self.learning_rate
                 factor = int(epoch / lr_epoch_update)
@@ -201,13 +198,13 @@ class DeepEmbeddingClustering(object):
                     encoder_model.compile(loss='mse', optimizer=SGD(lr=self.learning_rate, decay=0, momentum=0.9))
                     current_input = encoder_model.predict(current_input, verbose=0)
 
-                autoencoder.fit(current_input, current_input, 
+                autoencoder.fit(current_input, current_input,
                                 batch_size=self.batch_size, epochs=layerwise_epochs, callbacks=[lr_schedule])
                 self.autoencoder.layers[i].set_weights(autoencoder.layers[1].get_weights())
                 self.autoencoder.layers[len(self.autoencoder.layers) - i - 1].set_weights(autoencoder.layers[-1].get_weights())
-            
+
             print('Finetuning autoencoder')
-            
+
             #update encoder and decoder weights:
             self.autoencoder.fit(X, X, batch_size=self.batch_size, epochs=finetune_epochs, callbacks=[lr_schedule])
 
@@ -333,5 +330,3 @@ class DeepEmbeddingClustering(object):
             sys.stdout.flush()
         return
         sys.stdout.write('Loss %f' % loss)
-
-
